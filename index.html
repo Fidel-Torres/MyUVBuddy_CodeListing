@@ -1,0 +1,599 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>UV Buddy Dashboard</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css">
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: sans-serif; padding: 1.5rem; background: #fffdf7; color: #2C2C2A; }
+
+    .header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.5rem; flex-wrap: wrap; gap: 12px; }
+    .header-left { display: flex; align-items: center; gap: 12px; }
+    .logo { width: 40px; height: 40px; border-radius: 50%; background: #FAEEDA; display: flex; align-items: center; justify-content: center; }
+    .logo i { font-size: 20px; color: #BA7517; }
+    .title { font-size: 20px; font-weight: 500; }
+    .subtitle { font-size: 13px; color: #888780; margin-top: 2px; }
+    .header-actions { display: flex; align-items: center; gap: 8px; }
+
+    .connect-btn { display: flex; align-items: center; gap: 8px; padding: 8px 18px; border-radius: 8px; border: 0.5px solid #EF9F27; background: #FAEEDA; color: #854F0B; font-size: 14px; font-weight: 500; cursor: pointer; transition: background 0.15s; }
+    .connect-btn:hover { background: #FAC775; }
+    .connect-btn.connected { background: #EAF3DE; border-color: #639922; color: #3B6D11; }
+
+    .reset-btn { display: flex; align-items: center; gap: 6px; padding: 8px 14px; border-radius: 8px; border: 0.5px solid rgba(0,0,0,0.12); background: #f5f4ef; color: #5F5E5A; font-size: 14px; font-weight: 500; cursor: pointer; transition: background 0.15s; }
+    .reset-btn:hover { background: #E8E7E1; }
+    .reset-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+    .set-profile-btn { display: flex; align-items: center; gap: 6px; padding: 5px 12px; border-radius: 20px; border: 0.5px solid #639922; background: #EAF3DE; color: #3B6D11; font-size: 12px; font-weight: 500; cursor: pointer; transition: background 0.15s; }
+    .set-profile-btn:hover { background: #DDECCB; }
+    .set-profile-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+    .status-bar { display: flex; align-items: center; gap: 8px; padding: 10px 14px; border-radius: 8px; background: #f5f4ef; border: 0.5px solid rgba(0,0,0,0.08); margin-bottom: 1rem; font-size: 13px; color: #888780; }
+    .status-dot { width: 8px; height: 8px; border-radius: 50%; background: #B4B2A9; flex-shrink: 0; transition: background 0.3s; }
+    .status-dot.live { background: #639922; box-shadow: 0 0 0 3px #EAF3DE; }
+    .status-dot.connecting { background: #EF9F27; box-shadow: 0 0 0 3px #FAEEDA; }
+
+    .alert-bar { display: none; align-items: center; gap: 8px; padding: 10px 14px; border-radius: 8px; border: 0.5px solid #F5C4B3; background: #FAECE7; color: #712B13; font-size: 13px; font-weight: 500; margin-bottom: 1rem; }
+    .alert-bar.visible { display: flex; }
+    .alert-bar i { font-size: 16px; }
+
+    .metrics { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 12px; margin-bottom: 1rem; }
+    .metric { background: #f5f4ef; border-radius: 8px; padding: 1rem; }
+    .metric-label { font-size: 12px; color: #888780; margin-bottom: 6px; display: flex; align-items: center; gap: 6px; }
+    .metric-label i { font-size: 14px; }
+    .metric-value { font-size: 26px; font-weight: 500; }
+    .metric-sub { font-size: 12px; color: #888780; margin-top: 4px; }
+    .uvi-badge { display: inline-block; padding: 2px 10px; border-radius: 20px; font-size: 12px; font-weight: 500; margin-top: 6px; }
+
+    .card { background: #ffffff; border: 0.5px solid rgba(0,0,0,0.08); border-radius: 12px; padding: 1.25rem; margin-bottom: 1rem; }
+    .card-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 1rem; flex-wrap: wrap; gap: 8px; }
+    .card-title { font-size: 14px; font-weight: 500; display: flex; align-items: center; gap: 8px; }
+    .card-title i { font-size: 16px; color: #EF9F27; }
+    .card-hint { font-size: 12px; color: #888780; }
+
+    /* SED dose bar */
+    .sed-bar-wrap { background: #f5f4ef; border-radius: 6px; height: 10px; overflow: hidden; margin: 8px 0; }
+    .sed-bar-fill { height: 100%; border-radius: 6px; transition: width 0.6s ease, background 0.6s ease; background: #639922; }
+    .sed-row { display: flex; justify-content: space-between; align-items: baseline; font-size: 13px; }
+    .sed-value { font-weight: 500; color: #2C2C2A; }
+    .sed-limit { color: #888780; }
+    .sed-info { font-size: 11px; color: #B4B2A9; margin-top: 6px; }
+
+    /* Dose profile selector */
+    .skin-selector { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+    .skin-label { font-size: 12px; color: #888780; }
+    .skin-btn { padding: 3px 10px; border-radius: 20px; border: 0.5px solid rgba(0,0,0,0.12); background: #f5f4ef; color: #5F5E5A; font-size: 12px; font-weight: 500; cursor: pointer; transition: all 0.15s; }
+    .skin-btn.active { background: #FAEEDA; border-color: #EF9F27; color: #854F0B; }
+
+    .log-list { font-size: 13px; font-family: monospace; }
+    .log-row { display: flex; align-items: center; gap: 10px; padding: 6px 0; border-bottom: 0.5px solid rgba(0,0,0,0.06); flex-wrap: wrap; }
+    .log-row:last-child { border-bottom: none; }
+    .log-time { color: #888780; flex-shrink: 0; min-width: 58px; }
+    .log-uv { color: #BA7517; font-weight: 500; }
+    .log-light { color: #185FA5; font-weight: 500; }
+    .log-sed { color: #639922; font-weight: 500; }
+
+    .empty { text-align: center; padding: 2rem; color: #888780; font-size: 14px; }
+    .empty i { font-size: 32px; display: block; margin-bottom: 8px; color: #FAC775; }
+  </style>
+</head>
+<body>
+
+<div class="header">
+  <div class="header-left">
+    <div class="logo"><i class="ti ti-sun"></i></div>
+    <div>
+      <div class="title">UV Buddy</div>
+      <div class="subtitle">LTR390 BLE Dashboard</div>
+    </div>
+  </div>
+  <div class="header-actions">
+    <button class="reset-btn" id="resetBtn" onclick="resetSession()" disabled>
+      <i class="ti ti-refresh"></i> Reset session
+    </button>
+    <button class="connect-btn" id="connectBtn" onclick="toggleConnect()">
+      <i class="ti ti-bluetooth" id="btnIcon"></i>
+      <span id="btnLabel">Connect</span>
+    </button>
+  </div>
+</div>
+
+<div class="status-bar">
+  <div class="status-dot" id="statusDot"></div>
+  <span id="statusText">Disconnected - press Connect to scan for MYUVBUDDY</span>
+</div>
+
+<div class="alert-bar" id="alertBar">
+  <i class="ti ti-alert-triangle"></i>
+  <span id="alertText">UVI above threshold</span>
+</div>
+
+<!-- Metrics row -->
+<div class="metrics">
+  <div class="metric">
+    <div class="metric-label"><i class="ti ti-sun"></i> UV index</div>
+    <div><span class="metric-value" id="metUVI">-</span></div>
+    <div id="uviBadge"></div>
+  </div>
+  <div class="metric">
+    <div class="metric-label"><i class="ti ti-brightness"></i> Ambient light</div>
+    <div><span class="metric-value" id="metLUX">-</span></div>
+    <div class="metric-sub">lux</div>
+  </div>
+  <div class="metric">
+    <div class="metric-label"><i class="ti ti-radiation"></i> Dose (SED)</div>
+    <div><span class="metric-value" id="metSED">-</span></div>
+    <div class="metric-sub">ISO/CIE 17166</div>
+  </div>
+  <div class="metric">
+    <div class="metric-label"><i class="ti ti-clock"></i> Samples</div>
+    <div><span class="metric-value" id="metCount">0</span></div>
+    <div class="metric-sub" id="metSince">-</div>
+  </div>
+</div>
+
+<!-- SED dose progress card -->
+<div class="card">
+  <div class="card-header">
+    <div class="card-title"><i class="ti ti-activity-heartbeat"></i> Cumulative UV dose</div>
+    <div class="skin-selector">
+      <span class="skin-label">Dose profile:</span>
+      <button class="skin-btn"        onclick="selectDoseProfile(this,1.0,'Very sensitive')">VS</button>
+      <button class="skin-btn active" onclick="selectDoseProfile(this,2.0,'I')">I</button>
+      <button class="skin-btn"        onclick="selectDoseProfile(this,3.0,'II')">II</button>
+      <button class="skin-btn"        onclick="selectDoseProfile(this,4.0,'III')">III</button>
+      <button class="skin-btn"        onclick="selectDoseProfile(this,6.0,'IV')">IV</button>
+      <button class="set-profile-btn" id="setDoseBtn" onclick="sendDoseProfile()" disabled>
+        <i class="ti ti-device-floppy"></i> Set profile
+      </button>
+    </div>
+  </div>
+  <div class="sed-row">
+    <span class="sed-value" id="sedCurrent">0.000 SED</span>
+    <span class="sed-limit" id="sedLimit">limit: 2.0 SED (type I)</span>
+  </div>
+  <div class="sed-bar-wrap">
+    <div class="sed-bar-fill" id="sedBar" style="width:0%"></div>
+  </div>
+  <div class="sed-info">1 SED = 100 J/m&sup2 dose rate = UVI x 0.025 W/m&sup2 ISO/CIE 17166</div>
+</div>
+
+<!-- UV chart -->
+<div class="card">
+  <div class="card-header">
+    <div class="card-title"><i class="ti ti-chart-line"></i> UV index over time</div>
+    <div class="card-hint" id="chartHint">last 50 readings</div>
+  </div>
+  <div style="position: relative; width: 100%; height: 200px;">
+    <canvas id="uvChart" role="img" aria-label="Line chart of UV index and lux over time">No data yet.</canvas>
+  </div>
+</div>
+
+<!-- Recent readings -->
+<div class="card">
+  <div class="card-header">
+    <div class="card-title"><i class="ti ti-list"></i> Recent readings</div>
+    <div class="card-hint">newest first</div>
+  </div>
+  <div id="logList" class="log-list">
+    <div class="empty">
+      <i class="ti ti-sun-off"></i>
+      No data yet - connect your device
+    </div>
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<script>
+const SERVICE_UUID        = '4880c12c-fdcb-4077-8920-a450d7f9b907';
+const CHARACTERISTIC_UUID = 'fec26ec4-6d71-4442-9f81-55bc21d658d6';
+const MAX_CHART_POINTS    = 50;
+const MAX_LOG_ROWS        = 20;
+
+const UVI_LEVELS = [
+  { max: 2,        label: 'Low',       bg: '#EAF3DE', color: '#3B6D11' },
+  { max: 5,        label: 'Moderate',  bg: '#FAEEDA', color: '#854F0B' },
+  { max: 7,        label: 'High',      bg: '#FAC775', color: '#633806' },
+  { max: 10,       label: 'Very high', bg: '#F5C4B3', color: '#712B13' },
+  { max: Infinity, label: 'Extreme',   bg: '#F4C0D1', color: '#72243E' }
+];
+
+function uviLevel(uvi) { return UVI_LEVELS.find(l => uvi <= l.max); }
+
+// SED bar colors by fill %
+function sedBarColor(pct) {
+  if (pct < 50)  return '#639922';   // green
+  if (pct < 75)  return '#EF9F27';   // amber
+  if (pct < 90)  return '#D85A30';   // orange
+  return '#E24B4A';                  // red
+}
+
+let bleDevice       = null;
+let characteristic  = null;
+let connected       = false;
+let history         = JSON.parse(localStorage.getItem('uvbuddy_history') || '[]');
+let sessionStart    = null;
+let bleBuffer       = '';
+
+let sedThreshold    = 2.0;
+let sedTypeName     = 'I';
+
+let pendingSedThreshold = 2.0;
+let pendingSedTypeName  = 'I';
+
+// -----------------------------------------------------------------------------
+// Dose profile selector
+// -----------------------------------------------------------------------------
+
+function selectDoseProfile(btn, threshold, name) {
+  document.querySelectorAll('.skin-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+
+  pendingSedThreshold = threshold;
+  pendingSedTypeName  = name;
+
+  document.getElementById('sedLimit').textContent =
+    `selected: ${threshold.toFixed(1)} SED (${name}) - click Set profile`;
+}
+
+async function sendDoseProfile() {
+  sedThreshold = pendingSedThreshold;
+  sedTypeName  = pendingSedTypeName;
+
+  const lastSed = history.length ? history[0].sed : 0;
+  updateSedBar(lastSed);
+
+  await sendCommand(`SETSED=${sedThreshold.toFixed(1)}\n`);
+
+  setStatus('live', `Dose profile sent: ${sedTypeName} (${sedThreshold.toFixed(1)} SED)`);
+}
+
+// -----------------------------------------------------------------------------
+// Chart
+// -----------------------------------------------------------------------------
+
+const ctx = document.getElementById('uvChart').getContext('2d');
+const uvChart = new Chart(ctx, {
+  type: 'line',
+  data: {
+    labels: [],
+    datasets: [{
+      label: 'UVI',
+      data: [],
+      borderColor: '#EF9F27',
+      backgroundColor: 'rgba(239,159,39,0.10)',
+      borderWidth: 2,
+      pointBackgroundColor: '#EF9F27',
+      pointRadius: 3,
+      fill: true,
+      tension: 0.35
+    },{
+      label: 'Lux',
+      data: [],
+      borderColor: '#378ADD',
+      backgroundColor: 'rgba(55,138,221,0.07)',
+      borderWidth: 1.5,
+      pointBackgroundColor: '#378ADD',
+      pointRadius: 2,
+      fill: true,
+      tension: 0.35,
+      borderDash: [4, 3],
+      yAxisID: 'y2'
+    }]
+  },
+  options: {
+    responsive: true,
+    maintainAspectRatio: false,
+    interaction: { mode: 'index', intersect: false },
+    plugins: {
+      legend: { display: false },
+      tooltip: {
+        callbacks: {
+          label: c => c.datasetIndex === 0 ? `UVI: ${c.parsed.y}` : `Lux: ${c.parsed.y}`
+        }
+      }
+    },
+    scales: {
+      x: {
+        ticks: { maxTicksLimit: 8, font: { size: 11 }, color: '#888780', maxRotation: 0 },
+        grid:  { color: 'rgba(136,135,128,0.12)' }
+      },
+      y: {
+        title: { display: true, text: 'UVI', font: { size: 11 }, color: '#888780' },
+        ticks: { font: { size: 11 }, color: '#888780' },
+        grid:  { color: 'rgba(136,135,128,0.12)' }
+      },
+      y2: {
+        position: 'right',
+        title: { display: true, text: 'Lux', font: { size: 11 }, color: '#378ADD' },
+        ticks: { font: { size: 11 }, color: '#378ADD' },
+        grid:  { drawOnChartArea: false }
+      }
+    }
+  }
+});
+
+// -----------------------------------------------------------------------------
+// Status / alert helpers
+// -----------------------------------------------------------------------------
+
+function setStatus(state, text) {
+  const dot = document.getElementById('statusDot');
+  dot.className = 'status-dot'
+    + (state === 'live' ? ' live' : state === 'connecting' ? ' connecting' : '');
+  document.getElementById('statusText').textContent = text;
+}
+
+function setAlert(active, text) {
+  const bar = document.getElementById('alertBar');
+  bar.className = 'alert-bar' + (active ? ' visible' : '');
+  if (text) document.getElementById('alertText').textContent = text;
+}
+
+function updateSedBar(sed) {
+  const pct  = Math.min(100, (sed / sedThreshold) * 100);
+  const bar  = document.getElementById('sedBar');
+  bar.style.width      = pct.toFixed(1) + '%';
+  bar.style.background = sedBarColor(pct);
+  document.getElementById('sedCurrent').textContent = sed.toFixed(3) + ' SED';
+  document.getElementById('sedLimit').textContent   = `limit: ${sedThreshold.toFixed(1)} SED (${sedTypeName})`;
+  document.getElementById('metSED').textContent     = sed.toFixed(3);
+}
+
+// -----------------------------------------------------------------------------
+// Message parser
+// New format:  "UVI=x.x LUX=x.x SED=x.xxx\n"
+// Alerts:      "ALERT=UVI_HIGH" | "ALERT=UVI_OK" | "ALERT=SED_HIGH"
+// Ack:         "ACK=RESET" | "ACK=SED x.x"
+// Error:       "ERR=SENSOR" | "ERR=BAD_SED"
+// -----------------------------------------------------------------------------
+
+function parseMsg(raw) {
+  if (raw.includes('CMD=REQTIME')) {
+    const nowUnix = Math.floor(Date.now() / 1000);
+    sendCommand(`SETTIME=${nowUnix}\n`);
+    return null;
+  }
+
+  if (raw.includes('ALERT=')) {
+    if (raw.includes('ALERT=UVI_HIGH')) setAlert(true,  'UVI above threshold - seek shade');
+    if (raw.includes('ALERT=UVI_OK'))   setAlert(false, '');
+    if (raw.includes('ALERT=SED_HIGH')) setAlert(true,  'Daily UV dose limit reached - go inside');
+    return null;
+  }
+
+  if (raw.includes('ACK=RESET')) { setStatus('live', 'Session reset confirmed by device'); return null; }
+  if (raw.includes('ACK=TIME'))  { setStatus('live', 'Clock synced with device');           return null; }
+  if (raw.includes('ACK=SED'))   { setStatus('live', 'Dose profile confirmed by device');   return null; }
+  if (raw.includes('ERR=BAD_SED')) { setStatus('live', 'Rejected: invalid SED limit');      return null; }
+  if (raw.includes('ERR='))        { setStatus('live', 'Sensor error from device');          return null; }
+
+  const uviMatch    = raw.match(/UVI=([\d.]+)/);
+  const luxMatch    = raw.match(/LUX=([\d.]+)/);
+  const sedMatch    = raw.match(/SED=([\d.]+)/);
+  const tMatch      = raw.match(/T=(\d+)/);
+  const syncedMatch = raw.match(/SYNCED=(\d)/);
+
+  if (!uviMatch || !luxMatch || !sedMatch) return null;
+
+  return {
+    uvi:     parseFloat(uviMatch[1]),
+    lux:     parseFloat(luxMatch[1]),
+    sed:     parseFloat(sedMatch[1]),
+    unix_ts: tMatch      ? parseInt(tMatch[1])      : 0,
+    synced:  syncedMatch ? syncedMatch[1] === '1'    : false
+  };
+}
+// -----------------------------------------------------------------------------
+// Data handling
+// -----------------------------------------------------------------------------
+
+function addReading(parsed) {
+  const now = new Date();
+
+  const ts = (parsed.unix_ts && parsed.synced)
+    ? new Date(parsed.unix_ts * 1000).toISOString()
+    : now.toISOString();
+
+  const entry = { ts, uvi: parsed.uvi, lux: parsed.lux, sed: parsed.sed };
+
+  history.unshift(entry);
+  if (history.length > 500) history.pop();
+  localStorage.setItem('uvbuddy_history', JSON.stringify(history));
+
+  if (!sessionStart) sessionStart = now;
+
+  updateMetrics(entry);
+  updateChart();
+  updateLog();
+}
+
+function updateMetrics(entry) {
+  const level = uviLevel(entry.uvi);
+
+  document.getElementById('metUVI').textContent   = entry.uvi.toFixed(1);
+  document.getElementById('metLUX').textContent   = entry.lux.toFixed(1);
+  document.getElementById('metCount').textContent = history.length;
+  document.getElementById('metSince').textContent = sessionStart
+    ? 'since ' + sessionStart.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+    : '-';
+
+  document.getElementById('uviBadge').innerHTML =
+    `<span class="uvi-badge" style="background:${level.bg};color:${level.color}">${level.label}</span>`;
+
+  updateSedBar(entry.sed);
+}
+
+function updateChart() {
+  const slice  = history.slice(0, MAX_CHART_POINTS).reverse();
+  const labels = slice.map(e =>
+    new Date(e.ts).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })
+  );
+  uvChart.data.labels           = labels;
+  uvChart.data.datasets[0].data = slice.map(e => e.uvi);
+  uvChart.data.datasets[1].data = slice.map(e => e.lux);
+  document.getElementById('chartHint').textContent = `last ${slice.length} readings`;
+  uvChart.update('none');
+}
+
+function updateLog() {
+  const rows = history.slice(0, MAX_LOG_ROWS);
+  if (!rows.length) return;
+
+  document.getElementById('logList').innerHTML = rows.map(r => {
+    const t     = new Date(r.ts).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+    const level = uviLevel(r.uvi);
+    return `<div class="log-row">
+      <span class="log-time">${t}</span>
+      <span class="log-uv"><i class="ti ti-sun" style="font-size:13px"></i> UVI ${r.uvi.toFixed(1)}</span>
+      <span class="log-light"><i class="ti ti-brightness" style="font-size:13px"></i> ${r.lux.toFixed(1)} lux</span>
+      <span class="log-sed"><i class="ti ti-radiation" style="font-size:13px"></i> ${r.sed.toFixed(3)} SED</span>
+      <span class="uvi-badge" style="background:${level.bg};color:${level.color};font-size:11px">${level.label}</span>
+    </div>`;
+  }).join('');
+}
+
+// -----------------------------------------------------------------------------
+// BLE write - sends command to device
+// -----------------------------------------------------------------------------
+
+async function sendCommand(cmd) {
+  if (!characteristic) return;
+  try {
+    await characteristic.writeValueWithoutResponse(new TextEncoder().encode(cmd));
+  } catch(e) {
+    console.error('[BLE] Write error:', e);
+  }
+}
+
+// -----------------------------------------------------------------------------
+// Session reset - sends RESET to device + clears local state
+// -----------------------------------------------------------------------------
+
+async function resetSession() {
+  await sendCommand('RESET');
+
+  history      = [];
+  sessionStart = null;
+  localStorage.removeItem('uvbuddy_history');
+
+  document.getElementById('metUVI').textContent   = '-';
+  document.getElementById('metLUX').textContent   = '-';
+  document.getElementById('metSED').textContent   = '-';
+  document.getElementById('metCount').textContent = '0';
+  document.getElementById('metSince').textContent = '-';
+  document.getElementById('uviBadge').innerHTML   = '';
+  updateSedBar(0);
+  setAlert(false, '');
+
+  document.getElementById('logList').innerHTML =
+    '<div class="empty"><i class="ti ti-sun-off"></i>Session reset - waiting for data</div>';
+
+  uvChart.data.labels           = [];
+  uvChart.data.datasets[0].data = [];
+  uvChart.data.datasets[1].data = [];
+  uvChart.update('none');
+}
+
+// -----------------------------------------------------------------------------
+// BLE connection
+// -----------------------------------------------------------------------------
+
+async function toggleConnect() {
+  if (connected) {
+    bleBuffer      = '';
+    if (characteristic) {
+      try { await characteristic.stopNotifications(); } catch(e) {}
+    }
+
+    // Fully disconnect from the BLE device so it can advertise again.
+    if (bleDevice && bleDevice.gatt.connected) {
+      bleDevice.gatt.disconnect();
+    }
+
+    characteristic = null;
+    connected      = false;
+    setStatus('off', 'Disconnected');
+    setAlert(false, '');
+    document.getElementById('connectBtn').className = 'connect-btn';
+    document.getElementById('btnIcon').className    = 'ti ti-bluetooth';
+    document.getElementById('btnLabel').textContent = 'Connect';
+    document.getElementById('resetBtn').disabled    = true;
+    document.getElementById('setDoseBtn').disabled  = true;
+    return;
+  }
+
+  setStatus('connecting', 'Scanning...');
+  document.getElementById('btnLabel').textContent = 'Scanning...';
+
+  try {
+    const device = await navigator.bluetooth.requestDevice({
+      acceptAllDevices: true,
+      optionalServices: [SERVICE_UUID]
+    });
+
+    bleDevice = device;
+
+    setStatus('connecting', 'Connecting to ' + device.name + '...');
+
+    const server   = await device.gatt.connect();
+    const service  = await server.getPrimaryService(SERVICE_UUID);
+    characteristic = await service.getCharacteristic(CHARACTERISTIC_UUID);
+
+    await characteristic.startNotifications();
+    characteristic.addEventListener('characteristicvaluechanged', e => {
+      bleBuffer += new TextDecoder().decode(e.target.value);
+
+      let newlineIdx;
+      while ((newlineIdx = bleBuffer.indexOf('\n')) !== -1) {
+        const line = bleBuffer.slice(0, newlineIdx).trim();
+        bleBuffer  = bleBuffer.slice(newlineIdx + 1);
+
+        if (!line) continue;
+
+        const parsed = parseMsg(line);
+        if (parsed) addReading(parsed);
+      }
+    });
+
+    // Send current unix time so MCU can stamp readings correctly
+    const nowUnix = Math.floor(Date.now() / 1000);
+    await sendCommand(`SETTIME=${nowUnix}\n`);
+    
+    device.addEventListener('gattserverdisconnected', () => {
+      bleBuffer      = '';
+      characteristic = null;
+      connected = false;
+      setStatus('off', 'Device disconnected');
+      setAlert(false, '');
+      document.getElementById('connectBtn').className = 'connect-btn';
+      document.getElementById('btnIcon').className    = 'ti ti-bluetooth';
+      document.getElementById('btnLabel').textContent = 'Connect';
+      document.getElementById('resetBtn').disabled    = true;
+      document.getElementById('setDoseBtn').disabled  = true;
+    });
+
+    connected = true;
+    setStatus('live', 'Connected to ' + device.name + ' - receiving data');
+    document.getElementById('connectBtn').className = 'connect-btn connected';
+    document.getElementById('btnIcon').className    = 'ti ti-bluetooth-connected';
+    document.getElementById('btnLabel').textContent = 'Disconnect';
+    document.getElementById('resetBtn').disabled    = false;
+    document.getElementById('setDoseBtn').disabled  = false;
+
+  } catch(err) {
+    setStatus('off', 'Error: ' + err.message);
+    document.getElementById('btnLabel').textContent = 'Connect';
+    document.getElementById('setDoseBtn').disabled  = true;
+  }
+}
+
+// Restore history on load
+if (history.length) {
+  updateChart();
+  updateLog();
+  updateMetrics(history[0]);
+}
+</script>
+
+</body>
+</html>
